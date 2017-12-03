@@ -7,32 +7,26 @@ from telegram import ParseMode
 from telegram.ext import Updater, CommandHandler
 path.append("src/")
 from src.GitApi import GitHub
-import grequests
+from flask import Flask, request
+import subprocess
+import urllib
 
 # Bot Configuration
 config = ConfigParser()
 config.read_file(open('config.ini'))
 
-# Connecting the telegram API
-# Updater will take the information and dispatcher connect the message to
-# the bot
-print(config['DEFAULT']['token'])
-up = Updater(token="token")
+up = Updater(token=config['DEFAULT']['token'])
+PORT = config['DEFAULT']['port']
 job = up.job_queue
 dispatcher = up.dispatcher
-
-# Github wekhooks
-async_list = []
 
 
 # Home function
 def start(bot, update):
     # Home message
     msg = "Hello {user_name}! I'm {bot_name}. \n"
-    msg += "What would you like to do? \n"
-    msg += "/listing + username - List your repositories \n"
-    msg += "/info + username - shows your information \n"
-    msg += "Ex: /listing HeavenH | /info HeavenH"
+    msg += "I notify selected github push alarms!\n"
+    msg += "/listen - Start notify in this room \n"
 
     # Send the message
     bot.send_message(chat_id=update.message.chat_id,
@@ -40,9 +34,6 @@ def start(bot, update):
                          user_name=update.message.from_user.first_name,
                          bot_name=bot.name))
 
-def end(bot, update):
-    print("end")
-    exit(0)
 
 # Function to list the repositories
 def listing(bot, update, args):
@@ -59,51 +50,27 @@ def listing(bot, update, args):
                          text=gh.get_repos(user))
 
 
-def check_github_push(chat_id):
-    print("checking")
-
-    if is_github_listening != True:
-        return
-
-    print(action_item)
-    if async_list == []:
-        return
-    else:
-        bot.send_message(chat_id=chat_id,
-                text='Event: ',
-                parse_mode=ParseMode.MARKDOWN)
-
+def add_chat_id(chat_id):
+    response = urllib.request.urlopen(url='http://127.0.0.1:{0}/add/{1}'.format(PORT, chat_id), timeout=5)
+    print(response)
 
 
 def listening(bot, update):
-    print("listen")
-    # gh = GitHub()
-    # print(args)
     bot.send_message(chat_id=update.message.chat_id,
-                    text='Start listening repositories...:',
+                    text='Start listening repositories...',
                     parse_mode=ParseMode.MARKDOWN)
     is_github_listening = True
-
-    action_item = grequests.get("https://github.com/", hooks = {'response' : check_github_push(chat_id)})
+    add_chat_id(update.message.chat_id)
+    return
     
-
-    # Add the task to our list of things to do via async
-
     
-
 # Add handlers to dispatcher
 dispatcher.add_handler(CommandHandler('start', start))
-dispatcher.add_handler(CommandHandler('end', end))
 dispatcher.add_handler(CommandHandler('listing', listing, pass_args=True))
 dispatcher.add_handler(CommandHandler('listen', listening))
 
-# job.run_repeating(check_github_push(update.message.chat_id, interval=1, first=0))
-
-# dispatcher.add_handler(CommandHandler('info', info, pass_args=True))
 
 # Start the program
 up.start_polling()
-up.idle()
+proc = subprocess.Popen(["python", "push_server.py"])
 
-# Developed by Heaven, Jr750ac, Pedro Souza, Israel Sant'Anna all rights
-# reserved

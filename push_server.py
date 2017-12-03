@@ -1,8 +1,15 @@
 from flask import Flask, request
+from configparser import ConfigParser
+from telegram import ParseMode
 import json
+import telegram
 
-token="token"
-bot = Bot(token, base_url=None, base_file_url=None, request=None)
+config = ConfigParser()
+config.read_file(open('config.ini'))
+
+token = config['DEFAULT']['token']
+port = config['DEFAULT']['port']
+bot = telegram.Bot(token=token)
 
 
 app = Flask(__name__)
@@ -10,20 +17,43 @@ app = Flask(__name__)
 send_channel_list = []
 
 def push(json_msg):
-    pass
+    msg = "`[{branch}]` New commit pushed by {username}\n".format(
+                branch=json_msg["ref"][json_msg["ref"].rindex("/")+1:],
+                username=json_msg["pusher"]["name"])
+    for commit in json_msg["commits"]:
+        msg += "[{commit_id}]({commit_url}) | {commit_message}\n".format(
+                commit_id=commit["id"][0:7],
+                commit_url=commit["url"],
+                commit_message=commit["message"])
+
+    # Send the message
+    for chat_id in send_channel_list:
+        bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.MARKDOWN)
+
+
 def commit_comment(json_msg):
     pass
+
+
 def issues(json_msg):
     pass
+
+
 def issue_comment(json_msg):
-    for chat_id in send_channel_list:
-        bot.send_message(chat_id=chat_id, text="text")
+    pass
+
+
 def pull_request(json_msg):
     pass
+
+
 def pull_request_review(json_msg):
     pass
+
+
 def pull_request_review_comment(json_msg):
     pass
+
 
 def parse_message(message, event):
     event_list = {
@@ -35,8 +65,9 @@ def parse_message(message, event):
         "pull_request_review": pull_request_review,
         "pull_request_review_comment": pull_request_review_comment
     }
-    json_msg = json.dumps(message)
+    json_msg = json.loads(message)
     event_list.get(event, lambda: "nothing")(json_msg)
+
 
 @app.route('/', methods=['GET', 'POST'])
 def receive_github_event():
@@ -45,15 +76,15 @@ def receive_github_event():
         parsed_msg = parse_message(request.data.decode("utf-8"), event_name)
     return "Hello World!"
 
+
 @app.route("/add/<int:chat_id>")
 def add_channel(chat_id):
-    send_channel_list.append(chat_id)
+    if request.remote_addr == "127.0.0.1":
+        pass
+    if chat_id not in send_channel_list:
+        send_channel_list.append(chat_id)
     return "OK"
 
-@app.route("/bot/<int:chat_id>")
-def add_bot(chat_id):
-    send_channel_list.append(chat_id)
-    return "OK"
 
 def runserver(bot={}):
     bot = bot
