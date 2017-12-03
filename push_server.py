@@ -77,7 +77,7 @@ def receive_github_event():
     return "Hello World!"
 
 
-@app.route("/add/<int:chat_id>")
+@app.route("/add/<chat_id>")
 def add_channel(chat_id):
     if request.remote_addr == "127.0.0.1":
         pass
