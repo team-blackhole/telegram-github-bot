@@ -32,7 +32,21 @@ def push(json_msg):
 
 
 def commit_comment(json_msg):
-    pass
+    repo_json = json_msg["repository"]
+    comment_json = json_msg["comment"]
+    msg = "New commit comment from `[{repository}]` written by {username}\n".format(
+                repository=repo_json["name"],
+                username=comment_json["user"]["login"])
+    msg += "[{commit_number}]({comment_url}) | {comment_body}\n".format(
+                commit_number=comment_json["commit_id"][0:7],
+                comment_url=comment_json["html_url"],
+                comment_body=comment_json["body"][:30]+"..."
+                             if len(comment_json["body"]) > 30
+                             else comment_json["body"])
+
+    # Send the message
+    for chat_id in send_channel_list:
+        bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.MARKDOWN)
 
 
 def issues(json_msg):
