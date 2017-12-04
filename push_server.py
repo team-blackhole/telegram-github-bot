@@ -37,6 +37,8 @@ def commit_comment(json_msg):
 
 def issues(json_msg):
     issue_json = json_msg["issue"]
+    if json_msg["action"] != "opened":
+        return
     repo_json = json_msg["repository"]
     msg = "New issue from `[{repository}]` written by {username}\n".format(
                 repository=repo_json["name"],
