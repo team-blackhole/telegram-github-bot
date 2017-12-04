@@ -36,11 +36,38 @@ def commit_comment(json_msg):
 
 
 def issues(json_msg):
-    pass
+    issue_json = json_msg["issue"]
+    repo_json = json_msg["repository"]
+    msg = "New issue from `[{repository}]` written by {username}\n".format(
+                repository=repo_json["name"],
+                username=issue_json["user"]["login"])
+    msg += "[#{issue_number}]({issue_url}) | {issue_title}\n".format(
+                issue_number=issue_json["number"],
+                issue_url=issue_json["html_url"],
+                issue_title=issue_json["title"])
+
+    # Send the message
+    for chat_id in send_channel_list:
+        bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.MARKDOWN)
 
 
 def issue_comment(json_msg):
-    pass
+    issue_json = json_msg["issue"]
+    repo_json = json_msg["repository"]
+    comment_json = json_msg["comment"]
+    msg = "New issue comment from `[{repository}]` written by {username}\n".format(
+                repository=repo_json["name"],
+                username=issue_json["user"]["login"])
+    msg += "[#{issue_number}]({comment_url}) | {comment_body}\n".format(
+                issue_number=issue_json["number"],
+                comment_url=comment_json["html_url"],
+                comment_body=comment_json["body"][:30]+"..."
+                             if len(comment_json["body"]) > 30
+                             else comment_json["body"])
+
+    # Send the message
+    for chat_id in send_channel_list:
+        bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.MARKDOWN)
 
 
 def pull_request(json_msg):
