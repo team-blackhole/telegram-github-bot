@@ -5,16 +5,16 @@ import json
 import telegram
 
 config = ConfigParser()
-config.read_file(open('config.ini'))
+config.read_file(open("config.ini"))
 
-token = config['DEFAULT']['token']
-port = config['DEFAULT']['port']
+token = config["DEFAULT"]["token"]
+port = config["DEFAULT"]["port"]
+parsed_list = config["ROOMID"]["list"][1:-1].replace("\'", "").split(",")
+send_channel_list = parsed_list
 bot = telegram.Bot(token=token)
-
 
 app = Flask(__name__)
 
-send_channel_list = []
 
 def push(json_msg):
     msg = "`[{branch}]` New commit pushed by {username}\n".format(
@@ -67,6 +67,7 @@ def issue_comment(json_msg):
 
     # Send the message
     for chat_id in send_channel_list:
+        print(chat_id)
         bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.MARKDOWN)
 
 
@@ -106,10 +107,26 @@ def receive_github_event():
 
 @app.route("/add/<chat_id>")
 def add_channel(chat_id):
-    if request.remote_addr == "127.0.0.1":
-        pass
+    if request.remote_addr != "127.0.0.1":
+        return "Not localhost"
     if chat_id not in send_channel_list:
-        send_channel_list.append(chat_id)
+        send_channel_list.append(str(chat_id))
+        print(send_channel_list)
+        config.set('ROOMID', 'list', str(send_channel_list))
+        config.write(open("config.ini", "w"))
+    return "OK"
+
+
+@app.route("/remove/<chat_id>")
+def remove_channel(chat_id):
+    if request.remote_addr != "127.0.0.1":
+        return "Not localhost"
+    if str(chat_id) not in send_channel_list:
+        return "Not in list"
+    else:
+        del send_channel_list[send_channel_list.index(str(chat_id))]
+        config.set('ROOMID', 'list', str(send_channel_list))
+        config.write(open("config.ini", "w"))
     return "OK"
 
 

@@ -27,6 +27,7 @@ def start(bot, update):
     msg = "Hello {user_name}! I'm {bot_name}. \n"
     msg += "I notify selected github push alarms!\n"
     msg += "/listen - Start notify in this room \n"
+    msg += "/stoplisten - Stop notify in this room \n"
 
     # Send the message
     bot.send_message(chat_id=update.message.chat_id,
@@ -35,23 +36,13 @@ def start(bot, update):
                          bot_name=bot.name))
 
 
-# Function to list the repositories
-def listing(bot, update, args):
-    gh = GitHub()
-    for user in args:
-        bot.send_message(chat_id=update.message.chat_id,
-                         text='{0} Listing the user repositories '
-                         .format('\U0001F5C4') +
-                         '[{0}](https://github.com/{0}) {1}'.format(
-                             user, Emoji.WHITE_DOWN_POINTING_BACKHAND_INDEX),
-                         parse_mode=ParseMode.MARKDOWN)
-
-        bot.send_message(chat_id=update.message.chat_id,
-                         text=gh.get_repos(user))
-
-
 def add_chat_id(chat_id):
     response = urllib.request.urlopen(url='http://127.0.0.1:{0}/add/{1}'.format(PORT, chat_id), timeout=5)
+    print(response)
+
+
+def remove_chat_id(chat_id):
+    response = urllib.request.urlopen(url='http://127.0.0.1:{0}/remove/{1}'.format(PORT, chat_id), timeout=5)
     print(response)
 
 
@@ -59,15 +50,22 @@ def listening(bot, update):
     bot.send_message(chat_id=update.message.chat_id,
                     text='Start listening repositories...',
                     parse_mode=ParseMode.MARKDOWN)
-    is_github_listening = True
     add_chat_id(update.message.chat_id)
     return
+
+
+def stop_listening(bot, update):
+    bot.send_message(chat_id=update.message.chat_id,
+                    text='Stop listening repositories',
+                    parse_mode=ParseMode.MARKDOWN)
+    remove_chat_id(update.message.chat_id)
+
     
     
 # Add handlers to dispatcher
 dispatcher.add_handler(CommandHandler('start', start))
-dispatcher.add_handler(CommandHandler('listing', listing, pass_args=True))
 dispatcher.add_handler(CommandHandler('listen', listening))
+dispatcher.add_handler(CommandHandler('stoplisten', stop_listening))
 
 
 # Start the program
